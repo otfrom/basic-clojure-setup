@@ -171,12 +171,6 @@
       (global-set-key (kbd "s-p") 'git-gutter+-previous-hunk)
     #+END_SRC
 
-    We can diminish the size of GitGutter in the mode-line
-
-    #+BEGIN_SRC emacs-lisp
-      (diminish 'git-gutter+-mode)
-    #+END_SRC
-    
 * Programming Modes
 ** prog-mode
 
@@ -205,7 +199,6 @@
 
      #+BEGIN_SRC emacs-lisp
        (maybe-install-and-require 'paredit)
-       (diminish 'paredit-mode "()")
        (add-hook 'prog-mode-hook 'paredit-mode)
      #+END_SRC
 
@@ -228,7 +221,6 @@
     #+BEGIN_SRC emacs-lisp
       (maybe-install-and-require 'rainbow-mode)
       (add-hook 'prog-mode-hook 'rainbow-mode)
-      (diminish 'rainbow-mode)
     #+END_SRC
 
 *** highlight-symbol
@@ -256,7 +248,6 @@
     #+BEGIN_SRC emacs-lisp
             (setq lisp-hooks (lambda ()
                                (eldoc-mode +1)
-                               (diminish 'eldoc-mode)
                                (define-key paredit-mode-map
                                  (kbd "{") 'paredit-open-curly)
                                (define-key paredit-mode-map
