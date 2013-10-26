@@ -1,0 +1,401 @@
+* Helpers
+
+  There are a number of helper functions that we'll need through the
+  rest of this. We'll just define them up here.
+
+** load-if-exists
+
+   This is just a nice function to load a file if it exists, but just
+   print a message rather than an error if it doesn't. This is handy
+   for things like loading specific local config that you don't want
+   to go into github or be shared such as erc nicks, passwords, blog
+   rolls, etc.
+
+   #+BEGIN_SRC emacs-lisp
+     (defun load-if-exists (file)
+       (if (file-exists-p file)
+           (progn
+             (load file)
+             (message (format "Loading file: %s" file)))
+         (message (format "No %s file. So not loading one." file))))   
+   #+END_SRC
+
+* Globals
+
+** Tabs are Evil
+
+   I mean, not like evil-mode is good for vi users who want to use
+   emacs, which is fine, and obviously not like a truly evil thing,
+   but you know, not what I want. Hey, I can use hyperbole in my
+   org-mode files if I want to.
+
+   #+BEGIN_SRC emacs-lisp
+     (setq-default indent-tabs-mode nil)
+   #+END_SRC
+
+** uniquify
+
+   #+BEGIN_SRC emacs-lisp
+     (require 'uniquify)
+     (setq uniquify-buffer-name-style 'post-forward)   
+   #+END_SRC
+ 
+* non-elpa and work arounds
+
+  At the moment we don't have any workarounds. It looked like we might
+  need one for cider for a while but the marvelously helpful grand
+  master of the [[https://github.com/clojure-emacs][clojure Emacs repo]] [[http://twitter.com/bbatsov][Bozhidar Batsov]] has fixed it.
+
+** non-elpa files
+
+   Unfortunately, we can't get everything we want from the package
+   archives or we might have files that we're working on locally that
+   we haven't released yet. We keep those in a non-elpa directory. We
+   need to add this to the load-path so that we can require the files
+   we have here.
+
+   #+BEGIN_SRC emacs-lisp
+     (add-to-list 'load-path (concat user-emacs-directory "non-elpa/"))
+   #+END_SRC
+   
+* Macintosh Specific Setup
+
+** # is broken on UK Macs
+
+   On UK keyboards shift-3 is bound to £. This is a real pain. The #
+   character is usually bound to M-3. This also causes problems,
+   especially with things like window-number modes. We have a hacked
+   window-number mode below that maps window 3 to s-3, which solves
+   that problem. The # problem is solved with this bit of code below.
+   
+   #+BEGIN_SRC emacs-lisp
+     (global-set-key (kbd "M-3") '(lambda () (interactive) (insert "#")))
+   #+END_SRC
+
+   We also need to deal with £ being a UTF-8 character so we don't get
+   annoying Â characters before non-ascii characters.
+
+   #+BEGIN_SRC emacs-lisp
+     (setq default-process-coding-system '(utf-8-unix . utf-8-unix))
+   #+END_SRC
+   
+** window-number-super mode
+
+   On a mac we have M-3 mapped to be the
+
+   #+BEGIN_SRC emacs-lisp
+     (require 'window-number-super)
+     (window-number-mode 1) ;; for the window numbers
+     (window-number-super-mode 1) ;; for the super key binding        
+   #+END_SRC
+   
+** $PATH is broken
+
+   If you don't run emacs in a terminal on Mac OS X then it can be
+   really awkward to get the stuff you want in your path. This is the
+   best way I've found so far to sort this out and get things like
+   ~/bin and /usr/loca/bin in a $PATH that emacs can access. I quite
+   like running emacs from outside the terminal.
+
+   Thanks to the lovely and helpful [[https://twitter.com/_tobrien][Tom O'Brien]] I've got a better way
+   of doing this and now my emacs environment will be in sync with my
+   shell. You can out more at the github page for
+   [[https://github.com/purcell/exec-path-from-shell][exec-path-from-shell]].
+
+   #+BEGIN_SRC emacs-lisp
+     (maybe-install-and-require 'exec-path-from-shell)
+     (when (memq window-system '(mac ns))
+       (exec-path-from-shell-initialize))
+   #+END_SRC
+
+* Make it Pretty
+
+** color themes
+
+*** custom-theme-directory
+
+    Themes seem to be quite picky about where they live. They require
+    custom-theme-directory to be set. By default this is the same as
+    user-emacs-directory, which is usually ~/.emacs.d. I'd like to
+    keep them separate if possible. I learned this one by reading
+    some of [[https://github.com/sw1nn/dotfiles][Neale Swinnerton's dotfiles]].
+
+    #+BEGIN_SRC emacs-lisp
+      (setq custom-theme-directory (concat user-emacs-directory "themes"))
+    #+END_SRC
+
+*** cyberpunk
+    
+    I really like the cyberpunk theme from [[https://github.com/overtone/emacs-live][emacs-live]] and [[https://twitter.com/samaaron][Sam Aaron]] is
+    a lovely guy. I wanted to avoid needing the old color-theme
+    mode. [[https://twitter.com/rikardglans][Rikard Glans]] was nice enought to port it over to the new
+    stuff.
+
+    #+BEGIN_SRC emacs-lisp
+      (load-theme 'emacslive-cyberpunk t)
+    #+END_SRC
+
+* directories, navigation, searching
+** git
+
+*** magit
+
+    magit is a *fantastic* mode for dealing with git.
+    
+    #+BEGIN_SRC emacs-lisp
+       (maybe-install-and-require 'magit)
+    #+END_SRC
+    
+    I use magit-status a lot. So let's bind it to C-x g.
+
+    #+BEGIN_SRC emacs-lisp
+      (global-set-key (kbd "C-x g") 'magit-status)
+    #+END_SRC
+
+*** git-gutter-mode+
+
+    It is really nice having +/= in the gutter. I like it more than
+    having line numbers and thus I've dumped linum-mode.
+    
+    #+BEGIN_SRC emacs-lisp
+      (maybe-install-and-require 'git-gutter-fringe+)
+      (global-git-gutter+-mode t)
+    #+END_SRC
+
+    It is also quite nice to be able to navigate a file by he git
+    hunks. It makes it a bit easier to see what has changed since the
+    last time in the context of the whole file.
+
+    #+BEGIN_SRC emacs-lisp
+      (global-set-key (kbd "s-n") 'git-gutter+-next-hunk)
+      (global-set-key (kbd "s-p") 'git-gutter+-previous-hunk)
+    #+END_SRC
+
+    We can diminish the size of GitGutter in the mode-line
+
+    #+BEGIN_SRC emacs-lisp
+      (diminish 'git-gutter+-mode)
+    #+END_SRC
+    
+* Programming Modes
+** prog-mode
+
+   prog-mode and the prog-mode-hook are at the basis of most of the
+   programming modes in emacs. If we want something set up for
+   everything we should do it here.
+   
+*** Parentheses
+**** Show Them
+
+     We really want to see those parentheses. 
+     
+     #+BEGIN_SRC emacs-lisp
+       (show-paren-mode +1)
+     #+END_SRC
+
+**** paredit-mode
+
+     Should I move over to smartparens? Can anyone tell me what is so
+     much better about it?
+
+     paredit-mode is a strange one. When you first use it, you will
+     hate it. You'll hate the way it won't let you do the things
+     you *think* you want to do. Once you get used to it though you
+     wonder how you ever did any programming without it.
+
+     #+BEGIN_SRC emacs-lisp
+       (maybe-install-and-require 'paredit)
+       (diminish 'paredit-mode "()")
+       (add-hook 'prog-mode-hook 'paredit-mode)
+     #+END_SRC
+
+*** rainbow-delimiters
+
+    Make those delimiters glow with wacky colors so we can see what is
+    going on.
+
+    #+BEGIN_SRC emacs-lisp
+      (maybe-install-and-require 'rainbow-delimiters)
+      (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
+    #+END_SRC
+
+*** rainbow mode
+
+    If we have a color literal it is really nice to have an idea of
+    what it is going to look like. This is *really* useful in things
+    like editing CSS files with hex color codes.
+
+    #+BEGIN_SRC emacs-lisp
+      (maybe-install-and-require 'rainbow-mode)
+      (add-hook 'prog-mode-hook 'rainbow-mode)
+      (diminish 'rainbow-mode)
+    #+END_SRC
+
+*** highlight-symbol
+
+    I like to see all of the places I'm using the same symbol. This is
+    a great visual cue for those times where you've mistyped a variable
+    for function name. It isn't quite flymake, but it is handy. It is
+    good to see where something is used as well.
+
+    #+BEGIN_SRC emacs-lisp
+      (maybe-install-and-require 'highlight-symbol)
+      (add-hook 'prog-mode-hook 'highlight-symbol-mode)
+    #+END_SRC
+    
+** lisp modes
+
+   emacs-lisp and clojure are the two that really go in here for now,
+   though in the future scheme and common lisp could be added.
+
+*** lisp hooks
+
+    These are the common lisp hooks we want shared across all lisp
+    modes.
+
+    #+BEGIN_SRC emacs-lisp
+            (setq lisp-hooks (lambda ()
+                               (eldoc-mode +1)
+                               (diminish 'eldoc-mode)
+                               (define-key paredit-mode-map
+                                 (kbd "{") 'paredit-open-curly)
+                               (define-key paredit-mode-map
+                                 (kbd "}") 'paredit-close-curly)))
+    #+END_SRC
+
+*** clojure
+
+    I do *love* coding in clojure. The tool chain has been evolving
+    quite a bit over the last few years.
+
+    Everything has gone from being built only with maven to maven
+    being just for core and everything else being done with [[http://leiningen.org/][Leiningen]].
+
+    On the emacs side we've gone from the swank and slime, to nrepl
+    and nrepl.el, to now we have nrepl and cider.el. Trying to move to
+    cider.el is what caused me to declare .emacs.d bankruptcy this
+    time and restructure everything.
+
+    Most of the clojure emacs goodness if available in the github
+    repo called [[https://github.com/clojure-emacs][clojure-emacs]].
+
+**** cider
+     
+     You can get most of the clojure support by just elpa installing
+     cider.
+
+     #+BEGIN_SRC emacs-lisp
+       (maybe-install-and-require 'cider)
+     #+END_SRC
+     
+     Adding clojure-test-mode is a good idea too. Lots of things out
+     there using the built in clojure.test.
+
+     #+BEGIN_SRC emacs-lisp
+       (maybe-install-and-require 'clojure-test-mode)     
+     #+END_SRC
+     
+     We'll also want to get our lisp-hooks into our clojurey
+     goodness. It would be a shame to not have it here.
+
+     #+BEGIN_SRC emacs-lisp
+       (add-hook 'clojure-mode-hook lisp-hooks)
+     #+END_SRC
+     
+     There are more things that we'll want that are specific to cider
+     mode and the cider interaction buffer.
+
+     #+BEGIN_SRC emacs-lisp
+       (add-hook 'cider-mode-hook 'cider-turn-on-eldoc-mode)
+       (add-hook 'cider-interaction-mode-hook 'cider-turn-on-eldoc-mode)
+     #+END_SRC
+     
+     We also want to save the history of our interactions. There might
+     be gold there.
+
+     #+BEGIN_SRC emacs-lisp
+       (setq cider-history-file (concat user-emacs-directory "cider-history"))
+     #+END_SRC
+     
+     I also want to be able to navigate to the "-" characters in words.
+
+     #+BEGIN_SRC emacs-lisp
+       (add-hook 'cider-mode-hook 'subword-mode)
+     #+END_SRC
+
+**** helm and clojure
+
+     Kris Jenkins has a great helm-clojure-headlines that I'd like to
+     bind to s-h when in clojure-mode.
+
+     #+BEGIN_SRC emacs-lisp
+       (defun helm-clojure-headlines ()
+         "Display headlines for the current Clojure file."
+         (interactive)
+         (helm :sources '(((name . "Clojure Headlines")
+                           (volatile)
+                           (headline "^[;(]")))))
+       
+       (add-hook 'clojure-mode-hook
+                 (lambda () (local-set-key (kbd "s-h") 'helm-clojure-headlines)))
+     #+END_SRC
+
+**** Clojure Cheat Sheet
+
+     It was this helm addon from Kris Jenkins that made me start to
+     look at helm. And having the clojure cheat sheet to hand is
+     useful.
+
+     I like binding cheatsheets to s-f9.
+
+     #+BEGIN_SRC emacs-lisp
+       (maybe-install-and-require 'clojure-cheatsheet)
+       (add-hook 'clojure-mode-hook
+                 (lambda () (local-set-key [s-f1] 'clojure-cheatsheet)))
+     #+END_SRC
+     
+** pastebins
+
+   gist, pastebin, refheap. All good ways of sharing snippets of code
+   with people on irc or similar.
+
+*** refheap
+
+    I like [[http://refheap.com][refheap]] and Anthony Grimes seems like a nice guy. And it
+    is built in clojure.
+
+    #+BEGIN_SRC emacs-lisp
+      (maybe-install-and-require 'refheap)
+    #+END_SRC
+
+* Local Config
+** custom.el
+
+   custom.el is great for configuring things through that "gui" in
+   emacs, but it is a real pain when it drops junk in your [[../init.el][init.el]] and
+   messes up your pretty config and git history and is stuff that you
+   don't want to leak out on to github. You can change the location of
+   this file though and I like to do this.
+
+   #+BEGIN_SRC emacs-lisp
+     (setq custom-file "~/.emacs.d/local/custom.el")
+     (load-if-exists custom-file)
+   #+END_SRC
+* Finishing
+
+** Finis
+
+   I should really come up with better exhortations than this. The
+   stuff that Sam Aaron has in emacs-live I actually find quite
+   inspirational. cider.el has similar, though more specifically
+   clojurian things to say that I quite like as well.
+
+   However, I've always expected that any sufficiently advanced lisp
+   system has probably gained sentience. I think Emacs probably
+   qualifies for that.
+
+   Therefore, let's sign off as so...
+
+   #+BEGIN_SRC emacs-lisp
+     (message "Happy clojure hacking!")
+   #+END_SRC
