@@ -302,37 +302,6 @@
        (add-hook 'cider-mode-hook 'subword-mode)
      #+END_SRC
 
-**** helm and clojure
-
-     Kris Jenkins has a great helm-clojure-headlines that I'd like to
-     bind to s-h when in clojure-mode.
-
-     #+BEGIN_SRC emacs-lisp
-       (defun helm-clojure-headlines ()
-         "Display headlines for the current Clojure file."
-         (interactive)
-         (helm :sources '(((name . "Clojure Headlines")
-                           (volatile)
-                           (headline "^[;(]")))))
-       
-       (add-hook 'clojure-mode-hook
-                 (lambda () (local-set-key (kbd "s-h") 'helm-clojure-headlines)))
-     #+END_SRC
-
-**** Clojure Cheat Sheet
-
-     It was this helm addon from Kris Jenkins that made me start to
-     look at helm. And having the clojure cheat sheet to hand is
-     useful.
-
-     I like binding cheatsheets to s-f9.
-
-     #+BEGIN_SRC emacs-lisp
-       (maybe-install-and-require 'clojure-cheatsheet)
-       (add-hook 'clojure-mode-hook
-                 (lambda () (local-set-key [s-f1] 'clojure-cheatsheet)))
-     #+END_SRC
-     
 ** pastebins
 
    gist, pastebin, refheap. All good ways of sharing snippets of code
